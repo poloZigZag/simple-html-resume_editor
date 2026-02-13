@@ -3,8 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resume Editor - Standalone HTML</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com;">
+    <title>Open Source Resume Editor</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
+
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -1024,7 +1030,8 @@
             .skill-category, 
             .publication-box {
                 page-break-inside: avoid; /* Pour les vieux navigateurs */
-                bre
+                break-inside: avoid;      /* Standard moderne */
+            }
         }
 
         .photo-upload {
@@ -1194,6 +1201,31 @@
                         <button class="delete-btn" onclick="deleteItem(this)">×</button>
                     </div>
                     <button class="add-btn" onclick="addItem(this, 'skill')">+ Add Language</button>
+                </div>
+            </div>
+
+            <div class="sidebar-section" draggable="true">
+                <div class="section-controls">
+                    <button class="section-control-btn drag-handle" title="Move">⋮⋮</button>
+                    <button class="section-control-btn section-delete" onclick="deleteSection(this)" title="Delete">×</button>
+                </div>
+                <h2 class="sidebar-title" contenteditable="true">Certifications</h2>
+                <div class="sidebar-content">
+                    <div class="tag-container" id="certTags">
+                        <div class="tag-wrapper" draggable="true">
+                            <span class="tag" contenteditable="true">Godhood Certified</span>
+                            <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        </div>
+                        <div class="tag-wrapper" draggable="true">
+                            <span class="tag" contenteditable="true">Scrum Master</span>
+                            <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        </div>
+                        <div class="tag-wrapper" draggable="true">
+                            <span class="tag" contenteditable="true">First Aid</span>
+                            <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        </div>
+                        <button class="add-tag-btn" onclick="addTag(this)">+</button>
+                    </div>
                 </div>
             </div>
 
@@ -1443,14 +1475,19 @@
 
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(() => {
-                const cvHTML = document.getElementById('mainCvContainer').innerHTML;
+                // On récupère le HTML brut
+                const rawHTML = document.getElementById('mainCvContainer').innerHTML;
+                
+                // 🛡️ clean html with DOMPurify avoid script injections (XSS) like copy paste poisoning
+                const cleanHTML = DOMPurify.sanitize(rawHTML);
+                
                 const settings = {
                     primary: document.documentElement.style.getPropertyValue('--primary'),
                     accent: document.documentElement.style.getPropertyValue('--accent'),
                     width: document.documentElement.style.getPropertyValue('--sidebar-width')
                 };
 
-                localStorage.setItem('cv_html_data', cvHTML);
+                localStorage.setItem('cv_html_data', cleanHTML);
                 localStorage.setItem('cv_settings_data', JSON.stringify(settings));
 
                 indicator.textContent = '✅ Saved locally';
@@ -1464,7 +1501,8 @@
             const savedSettings = localStorage.getItem('cv_settings_data');
 
             if (savedHTML) {
-                document.getElementById('mainCvContainer').innerHTML = savedHTML;
+                // 🛡️ safety clean at loading
+                document.getElementById('mainCvContainer').innerHTML = DOMPurify.sanitize(savedHTML);
                 document.querySelectorAll('.sidebar-section, .main-section').forEach(initSectionDragDrop);
                 document.querySelectorAll('.editable-item, .tag-wrapper, .skill-tag-wrapper, .skill-item').forEach(initItemDragDrop);
             }
@@ -1498,8 +1536,27 @@
             }
         }
 
+        // ========== GLOBAL EVENT LISTENERS ==========
+        
+        // Auto-save triggers
         document.addEventListener('input', triggerSave);
         document.addEventListener('keyup', triggerSave);
+
+        // Copy and paste handling to avoid pasting with unwanted styles (like from Word or web pages)
+        document.addEventListener('paste', function(e) {
+            // Si on colle dans une zone éditable
+            if (e.target.isContentEditable) {
+                e.preventDefault(); // normal pasting is block (avec ses polices moches)
+                
+                // only text from clipboard, no formatting, no images, no HTML
+                const text = (e.originalEvent || e).clipboardData.getData('text/plain');
+                
+                // deposit the clean text at the cursor position
+                document.execCommand('insertText', false, text);
+                
+                triggerSave(); // On sauvegarde
+            }
+        });
 
         // ========== EMOJI PICKER ==========
         const emojis = [
@@ -1962,5 +2019,3 @@
     </script>
 </body>
 </html>
-
-```
