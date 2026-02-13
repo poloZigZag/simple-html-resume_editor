@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval';">
     <title>Open Source Resume Editor</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
 
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 
     <style>
         * {
@@ -1478,16 +1476,13 @@
                 // On récupère le HTML brut
                 const rawHTML = document.getElementById('mainCvContainer').innerHTML;
                 
-                // 🛡️ clean html with DOMPurify avoid script injections (XSS) like copy paste poisoning
-                const cleanHTML = DOMPurify.sanitize(rawHTML);
-                
                 const settings = {
                     primary: document.documentElement.style.getPropertyValue('--primary'),
                     accent: document.documentElement.style.getPropertyValue('--accent'),
                     width: document.documentElement.style.getPropertyValue('--sidebar-width')
                 };
 
-                localStorage.setItem('cv_html_data', cleanHTML);
+                localStorage.setItem('cv_html_data', rawHTML);
                 localStorage.setItem('cv_settings_data', JSON.stringify(settings));
 
                 indicator.textContent = '✅ Saved locally';
@@ -1501,8 +1496,7 @@
             const savedSettings = localStorage.getItem('cv_settings_data');
 
             if (savedHTML) {
-                // 🛡️ safety clean at loading
-                document.getElementById('mainCvContainer').innerHTML = DOMPurify.sanitize(savedHTML);
+                document.getElementById('mainCvContainer').innerHTML = savedHTML;
                 document.querySelectorAll('.sidebar-section, .main-section').forEach(initSectionDragDrop);
                 document.querySelectorAll('.editable-item, .tag-wrapper, .skill-tag-wrapper, .skill-item').forEach(initItemDragDrop);
             }
