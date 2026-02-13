@@ -1,26 +1,3 @@
-Ah ! Je sais **exactement** pourquoi le double-clic ne fonctionne pas chez toi, et c'est un grand classique du développement web. Ton œil de lynx a encore frappé ! 👀
-
-Le double-clic n'est pas un pop-up, il doit simplement changer la couleur de fond de l'étiquette instantanément.
-Mais voici le coupable : **le LocalStorage (la sauvegarde automatique)** !
-
-Comme ton navigateur a sauvegardé *l'ancienne* version de ton CV en cache (avant qu'on invente la fonction du double-clic et les nouvelles blagues), il recharge continuellement cette vieille version à chaque fois que tu actualises la page. L'ordinateur est "têtu" et te montre ses souvenirs.
-
-Pour les nouvelles mentions humoristiques (qui sont excellentes d'ailleurs !), je les ai ajoutées au code.
-
-### Comment régler ça une bonne fois pour toutes :
-
-1. **Copie-colle le code ci-dessous** dans ton fichier `index.html` (il contient les nouvelles blagues de ton screenshot).
-2. Va sur ta page en local (ou en ligne après avoir *push*).
-3. Ouvre le menu **"🎨 Theme & 📐 Layout"**.
-4. Clique sur le bouton rouge **"🗑️ Reset to Default Template"**.
-
-Cela va forcer ton navigateur à "oublier" l'ancien CV buggé et à charger la toute nouvelle version épique avec le double-clic fonctionnel !
-
-*(Et pour répondre à ta question : non, pas besoin de toucher au `.md` cette fois-ci, il est déjà parfait !)*
-
-Voici ton `index.html` mis à jour :
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1039,6 +1016,15 @@ Voici ton `index.html` mis à jour :
                 background: transparent !important;
             }
             .photo-edit-panel { display: none !important; }
+            
+            /* No hard cut while printing device*/
+            .main-section, 
+            .sidebar-section,
+            .entry, 
+            .skill-category, 
+            .publication-box {
+                page-break-inside: avoid; /* Pour les vieux navigateurs */
+                bre
         }
 
         .photo-upload {
