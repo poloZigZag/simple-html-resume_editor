@@ -1,0 +1,1902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Editor - Standalone HTML</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2E7D6F;
+            --primary-light: #3D9B8A;
+            --primary-dark: #1F5C50;
+            --accent: #F4A261;
+            --danger: #E74C3C;
+            --text-dark: #2C3E50;
+            --text-light: #FFFFFF;
+            --text-muted: #7F8C8D;
+            --bg-light: #F8FAFA;
+            --bg-sidebar: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+            --sidebar-width: 75mm;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: var(--text-dark);
+            background: #E0E0E0;
+            padding-top: 60px;
+        }
+
+        /* ========== TOOLBAR ========== */
+        .editor-toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: #2C3E50;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .toolbar-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .save-indicator {
+            font-size: 11px;
+            color: #2ecc71;
+            font-weight: normal;
+            font-family: 'Open Sans', sans-serif;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .toolbar-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .toolbar-btn {
+            background: var(--primary);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: inherit;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .toolbar-btn:hover {
+            background: var(--primary-light);
+        }
+
+        .toolbar-btn.secondary {
+            background: #7F8C8D;
+        }
+        
+        .toolbar-btn.secondary:hover {
+            background: #95a5a6;
+        }
+
+        .toolbar-btn.danger {
+            background: transparent;
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            margin-top: 15px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .toolbar-btn.danger:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .toolbar-info {
+            font-size: 11px;
+            opacity: 0.8;
+            max-width: 400px;
+            display: none;
+        }
+        
+        @media (min-width: 768px) {
+            .toolbar-info { display: block; }
+        }
+
+        /* ========== CV CONTAINER ========== */
+        .cv-container {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 20px auto;
+            background: white;
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            overflow: hidden;
+            transition: grid-template-columns 0.1s ease-out;
+        }
+
+        /* ========== SIDEBAR ========== */
+        .sidebar {
+            background: var(--bg-sidebar);
+            color: var(--text-light);
+            padding: 0;
+            position: relative;
+        }
+
+        .photo-container {
+            width: 100%;
+            padding: 25px;
+            display: flex;
+            justify-content: center;
+            background: rgba(255,255,255,0.05);
+            flex-direction: column;
+        }
+
+        .photo {
+            width: clamp(100px, 80%, 160px);
+            aspect-ratio: 1 / 1;
+            border-radius: 50%;
+            border: 4px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            margin: 0 auto;
+        }
+
+        .photo:hover {
+            border-color: var(--accent);
+        }
+
+        .photo-edit-panel {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            display: none; 
+        }
+
+        .photo-edit-panel label {
+            display: block;
+            font-size: 8pt;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 2px;
+        }
+
+        .photo-edit-panel input {
+            width: 100%;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .photo img {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1);
+            min-width: 100%;
+            min-height: 100%;
+            object-fit: contain;
+            transition: transform 0.05s ease-out;
+        }
+
+        .identity {
+            text-align: center;
+            padding: 20px 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            word-break: break-word;
+        }
+
+        .name {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 18pt;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .title {
+            font-size: 9pt;
+            font-weight: 300;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.9;
+        }
+
+        /* Sections sidebar */
+        .sidebar-section {
+            padding: 18px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        .sidebar-section:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .sidebar-section.dragging {
+            opacity: 0.5;
+        }
+
+        .sidebar-section.drag-over {
+            border-top: 3px solid var(--accent);
+        }
+
+        .sidebar-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 9pt;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-title::before {
+            content: '';
+            width: 18px;
+            height: 2px;
+            background: var(--accent);
+        }
+
+        .sidebar-content {
+            font-size: 9pt;
+            line-height: 1.6;
+        }
+
+        /* ========== EDITABLE ITEMS ========== */
+        .editable-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 8px;
+            padding: 4px;
+            border-radius: 4px;
+            position: relative;
+            cursor: move;
+            transition: background 0.2s;
+        }
+
+        .editable-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .editable-item.dragging {
+            opacity: 0.5;
+        }
+
+        .editable-item.drag-over {
+            border-top: 2px solid var(--accent);
+        }
+
+        .editable-icon {
+            width: 20px;
+            height: 20px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 10px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .editable-icon:hover {
+            background: var(--accent);
+            transform: scale(1.2);
+        }
+
+        .item-text {
+            flex: 1;
+            min-width: 0;
+            word-break: break-word;
+        }
+
+        /* Delete Button */
+        .delete-btn {
+            position: absolute;
+            right: -5px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            background: var(--danger);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .editable-item:hover .delete-btn,
+        .tag-wrapper:hover .delete-btn,
+        .entry:hover > .delete-btn,
+        .publication-box:hover > .delete-btn {
+            opacity: 1;
+        }
+
+        .delete-btn:hover {
+            background: #C0392B;
+        }
+
+        /* Add Button */
+        .add-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            width: 100%;
+            padding: 6px;
+            margin-top: 8px;
+            background: rgba(255,255,255,0.1);
+            border: 1px dashed rgba(255,255,255,0.3);
+            border-radius: 4px;
+            color: rgba(255,255,255,0.7);
+            font-size: 8pt;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-btn:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        /* Tags */
+        .tag-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .tag-wrapper {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .tag {
+            background: rgba(255,255,255,0.15);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 7.5pt;
+            white-space: nowrap;
+            cursor: move;
+            transition: background 0.2s;
+        }
+
+        .tag:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .tag-wrapper .delete-btn {
+            right: -8px;
+            top: -8px;
+            transform: none;
+            width: 16px;
+            height: 16px;
+            font-size: 10px;
+        }
+
+        .tag-wrapper.dragging {
+            opacity: 0.5;
+        }
+
+        .tag-wrapper.drag-over {
+            margin-left: 20px;
+        }
+
+        .add-tag-btn {
+            background: transparent;
+            border: 1px dashed rgba(255,255,255,0.4);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 7.5pt;
+            color: rgba(255,255,255,0.6);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-tag-btn:hover {
+            border-color: var(--accent);
+            color: white;
+        }
+
+        /* Skill bars */
+        .skill-item {
+            margin-bottom: 10px;
+            position: relative;
+            padding: 4px;
+            border-radius: 4px;
+            cursor: move;
+        }
+
+        .skill-item:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .skill-item .delete-btn {
+            right: 0;
+            top: 4px;
+            transform: none;
+        }
+
+        .skill-name {
+            font-size: 8.5pt;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            padding-right: 20px;
+        }
+
+        .skill-bar {
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .skill-level {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+
+        /* ========== MAIN CONTENT ========== */
+        .main {
+            padding: 25px 30px;
+            background: white;
+        }
+
+        .main-section {
+            margin-bottom: 20px;
+            padding: 5px;
+            border-radius: 4px;
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        .main-section:hover {
+            background: rgba(46, 125, 111, 0.03);
+        }
+
+        .main-section.dragging {
+            opacity: 0.5;
+        }
+
+        .main-section.drag-over {
+            border-top: 3px solid var(--accent);
+        }
+
+        .section-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 11pt;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::after {
+            content: '';
+            flex-grow: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--primary-light), transparent);
+        }
+
+        /* Section controls (drag handle + delete) */
+        .section-controls {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: flex;
+            gap: 5px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .main-section:hover .section-controls,
+        .sidebar-section:hover .section-controls {
+            opacity: 1;
+        }
+
+        .section-control-btn {
+            width: 24px;
+            height: 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .drag-handle {
+            background: #ECF0F1;
+            color: #7F8C8D;
+            cursor: move;
+        }
+
+        .drag-handle:hover {
+            background: #BDC3C7;
+        }
+
+        .section-delete {
+            background: var(--danger);
+            color: white;
+        }
+
+        .section-delete:hover {
+            background: #C0392B;
+        }
+
+        /* Entries */
+        .entry {
+            margin-bottom: 14px;
+            position: relative;
+            padding-left: 15px;
+            padding-right: 25px;
+        }
+
+        .entry::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 6px;
+            width: 6px;
+            height: 6px;
+            background: var(--primary);
+            border-radius: 50%;
+        }
+
+        .entry > .delete-btn {
+            right: 0;
+            top: 0;
+            transform: none;
+        }
+
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 3px;
+        }
+
+        .entry-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 10pt;
+            color: var(--text-dark);
+        }
+
+        .entry-date {
+            font-size: 8pt;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .entry-subtitle {
+            font-size: 9pt;
+            color: var(--primary);
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .entry-description {
+            font-size: 8.5pt;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .entry-list {
+            list-style: none;
+            margin-top: 5px;
+        }
+
+        .entry-list li {
+            font-size: 8.5pt;
+            color: var(--text-dark);
+            padding-left: 12px;
+            position: relative;
+            margin-bottom: 3px;
+            line-height: 1.4;
+        }
+
+        .entry-list li::before {
+            content: '›';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* Add entry button */
+        .add-entry-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: var(--bg-light);
+            border: 2px dashed #E0E0E0;
+            border-radius: 6px;
+            color: var(--text-muted);
+            font-size: 9pt;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-entry-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(46, 125, 111, 0.05);
+        }
+
+        /* Skills grid (main) */
+        .skill-category {
+            margin-bottom: 12px;
+        }
+
+        .skill-category-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 9pt;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 6px;
+        }
+
+        .skill-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .skill-tag-wrapper {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .skill-tag {
+            background: var(--bg-light);
+            border: 1px solid #E0E0E0;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 8pt;
+            color: var(--text-dark);
+            cursor: move;
+            transition: all 0.2s;
+        }
+
+        .skill-tag:hover {
+            border-color: var(--primary);
+        }
+
+        .skill-tag.highlight {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .skill-tag-wrapper .delete-btn {
+            right: -6px;
+            top: -6px;
+            transform: none;
+            width: 14px;
+            height: 14px;
+            font-size: 9px;
+        }
+
+        .add-skill-tag-btn {
+            background: transparent;
+            border: 1px dashed #CCC;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 8pt;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .add-skill-tag-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Publication box */
+        .publication-box {
+            background: linear-gradient(135deg, var(--bg-light) 0%, #E8F4F2 100%);
+            border-left: 3px solid var(--primary);
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border-radius: 0 6px 6px 0;
+            position: relative;
+        }
+
+        .publication-box:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .publication-box > .delete-btn {
+            right: 10px;
+            top: 10px;
+            transform: none;
+        }
+
+        .publication-title {
+            font-weight: 600;
+            font-size: 9pt;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+        }
+
+        .publication-journal {
+            font-style: italic;
+            color: var(--primary);
+            font-size: 8.5pt;
+        }
+
+        .publication-status {
+            font-size: 8pt;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* ========== EDITABLE STYLES ========== */
+        [contenteditable="true"] {
+            outline: none;
+            border-radius: 2px;
+            transition: background 0.2s;
+        }
+
+        [contenteditable="true"]:hover {
+            background: rgba(244, 162, 97, 0.1);
+        }
+
+        [contenteditable="true"]:focus {
+            background: rgba(244, 162, 97, 0.2);
+            outline: 2px dashed var(--accent);
+            outline-offset: 2px;
+        }
+
+        /* Sidebar editable */
+        .sidebar [contenteditable="true"]:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .sidebar [contenteditable="true"]:focus {
+            background: rgba(255,255,255,0.15);
+        }
+
+        /* ========== MODALS ========== */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1500;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            z-index: 2000;
+            padding: 20px;
+            min-width: 300px;
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: block;
+        }
+
+        .modal h3 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 14px;
+            margin-bottom: 15px;
+            color: var(--text-dark);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        /* Settings Options */
+        .setting-option {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .setting-option label {
+            font-size: 12px;
+            width: 120px;
+            font-weight: 600;
+        }
+
+        .setting-option input[type="color"] {
+            width: 50px;
+            height: 30px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .setting-option input[type="range"] {
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .setting-value {
+            font-size: 11px;
+            color: var(--text-muted);
+            width: 40px;
+            text-align: right;
+        }
+
+        /* Emoji picker */
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .emoji-option {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .emoji-option:hover {
+            background: var(--bg-light);
+        }
+
+        /* ========== ADD SECTION BUTTON ========== */
+        .add-section-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: calc(100% - 10px);
+            margin: 10px 5px;
+            padding: 12px;
+            background: transparent;
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 6px;
+            color: rgba(255,255,255,0.6);
+            font-size: 9pt;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-section-btn:hover {
+            border-color: var(--accent);
+            color: white;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .main .add-section-btn {
+            border-color: #E0E0E0;
+            color: var(--text-muted);
+        }
+
+        .main .add-section-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(46, 125, 111, 0.05);
+        }
+
+        /* ========== PRINT ========== */
+        @media print {
+            body {
+                background: white;
+                padding-top: 0;
+            }
+            .editor-toolbar, .modal, .overlay,
+            .delete-btn, .add-btn, .add-tag-btn, .add-entry-btn, .add-section-btn,
+            .add-skill-tag-btn, .section-controls {
+                display: none !important;
+            }
+            .cv-container {
+                margin: 0;
+                box-shadow: none;
+                width: 100%;
+                min-height: 100vh;
+            }
+            .sidebar-section:hover, .main-section:hover, .editable-item:hover,
+            .skill-item:hover, .publication-box:hover {
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+            [contenteditable="true"]:hover {
+                background: transparent !important;
+            }
+            .photo-edit-panel { display: none !important; }
+        }
+
+        .photo-upload {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="editor-toolbar">
+        <div class="toolbar-title">
+            📝 Resume Editor
+            <span id="saveIndicator" class="save-indicator">💾 Auto-saved</span>
+        </div>
+        <div class="toolbar-info">✏️ Click to edit • 🖱️ Drag to reorder • ➕ Add items • ❌ Hover to delete</div>
+        <div class="toolbar-actions">
+            <button class="toolbar-btn secondary" onclick="openSettingsModal()">🎨 Theme & 📐 Layout</button>
+            <button class="toolbar-btn" onclick="window.print()">🖨️ Save as PDF</button>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closeModals()"></div>
+
+    <div class="modal" id="emojiPicker">
+        <button class="modal-close" onclick="closeModals()">×</button>
+        <h3>Choose Icon</h3>
+        <div class="emoji-grid" id="emojiGrid"></div>
+    </div>
+
+    <div class="modal" id="settingsModal">
+        <button class="modal-close" onclick="closeModals()">×</button>
+        <h3>Settings</h3>
+        
+        <div class="setting-option">
+            <label>Primary Color</label>
+            <input type="color" id="primaryColor" value="#2E7D6F" onchange="updateColors()">
+        </div>
+        <div class="setting-option">
+            <label>Accent Color</label>
+            <input type="color" id="accentColor" value="#F4A261" onchange="updateColors()">
+        </div>
+        
+        <hr style="margin: 15px 0; border: none; border-top: 1px solid #eee;">
+        
+        <div class="setting-option">
+            <label>Sidebar Width</label>
+            <input type="range" id="sidebarWidthInput" min="50" max="110" value="75" oninput="updateLayout()">
+            <span class="setting-value" id="sidebarWidthValue">75mm</span>
+        </div>
+
+        <button class="toolbar-btn danger" onclick="resetData()">🗑️ Reset to Default Template</button>
+    </div>
+
+    <input type="file" id="photoUpload" class="photo-upload" accept="image/*" onchange="handlePhotoUpload(event)">
+
+    <div class="cv-container" id="mainCvContainer">
+        <aside class="sidebar" id="sidebarContainer">
+            <div class="photo-container">
+            <div class="photo" onclick="document.getElementById('photoUpload').click()" title="Click to change photo">
+                <span id="photoPlaceholder">PHOTO<br><small>(click)</small></span>
+                <img id="photoImage" style="display: none;">
+            </div>
+            
+            <div id="photoSettings" class="photo-edit-panel">
+                <label>🔍 Zoom</label>
+                <input type="range" id="zoomRange" min="0.1" max="3" step="0.01" value="1" oninput="applyPhotoStyles()">
+                
+                <label>↔️ Position X</label>
+                <input type="range" id="posXRange" min="-100" max="100" step="1" value="0" oninput="applyPhotoStyles()">
+                
+                <label>↕️ Position Y</label>
+                <input type="range" id="posYRange" min="-100" max="100" step="1" value="0" oninput="applyPhotoStyles()">
+            </div>
+        </div>
+
+            <div class="identity">
+                <h1 class="name" contenteditable="true">JOHN DOE</h1>
+                <p class="title" contenteditable="true">General Engineer & World Builder</p>
+            </div>
+
+            <div class="sidebar-section" draggable="true">
+                <div class="section-controls">
+                    <button class="section-control-btn drag-handle" title="Move">⋮⋮</button>
+                    <button class="section-control-btn section-delete" onclick="deleteSection(this)" title="Delete">×</button>
+                </div>
+                <h2 class="sidebar-title" contenteditable="true">Contact</h2>
+                <div class="sidebar-content items-container">
+                    <div class="editable-item" draggable="true">
+                        <span class="editable-icon" onclick="openEmojiPicker(this)">✉</span>
+                        <span class="item-text" contenteditable="true">john.doe@olympus.com</span>
+                        <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                    </div>
+                    <div class="editable-item" draggable="true">
+                        <span class="editable-icon" onclick="openEmojiPicker(this)">☎</span>
+                        <span class="item-text" contenteditable="true">+1 800 GOD MODE</span>
+                        <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                    </div>
+                    <div class="editable-item" draggable="true">
+                        <span class="editable-icon" onclick="openEmojiPicker(this)">⌂</span>
+                        <span class="item-text" contenteditable="true">Mount Olympus, Clouds</span>
+                        <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                    </div>
+                    <div class="editable-item" draggable="true">
+                        <span class="editable-icon" onclick="openEmojiPicker(this)">🌐</span>
+                        <span class="item-text" contenteditable="true">johndoe.creator.io</span>
+                        <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                    </div>
+                    <button class="add-btn" onclick="addItem(this, 'contact')">+ Add</button>
+                </div>
+            </div>
+
+            <div class="sidebar-section" draggable="true">
+                <div class="section-controls">
+                    <button class="section-control-btn drag-handle" title="Move">⋮⋮</button>
+                    <button class="section-control-btn section-delete" onclick="deleteSection(this)" title="Delete">×</button>
+                </div>
+                <h2 class="sidebar-title" contenteditable="true">Languages</h2>
+                <div class="sidebar-content items-container">
+                    <div class="skill-item" draggable="true">
+                        <div class="skill-name">
+                            <span contenteditable="true">English</span>
+                            <span contenteditable="true">Native</span>
+                        </div>
+                        <div class="skill-bar" onclick="adjustSkillBar(this, event)">
+                            <div class="skill-level" style="width: 100%"></div>
+                        </div>
+                        <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                    </div>
+                    <div class="skill-item" draggable="true">
+                        <div class="skill-name">
+                            <span contenteditable="true">Ancient Greek</span>
+                            <span contenteditable="true">Fluent</span>
+                        </div>
+                        <div class="skill-bar" onclick="adjustSkillBar(this, event)">
+                            <div class="skill-level" style="width: 90%"></div>
+                        </div>
+                        <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                    </div>
+                    <div class="skill-item" draggable="true">
+                        <div class="skill-name">
+                            <span contenteditable="true">Latin</span>
+                            <span contenteditable="true">Intermediate</span>
+                        </div>
+                        <div class="skill-bar" onclick="adjustSkillBar(this, event)">
+                            <div class="skill-level" style="width: 50%"></div>
+                        </div>
+                        <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                    </div>
+                    <button class="add-btn" onclick="addItem(this, 'skill')">+ Add Language</button>
+                </div>
+            </div>
+
+            <div class="sidebar-section" draggable="true">
+                <div class="section-controls">
+                    <button class="section-control-btn drag-handle" title="Move">⋮⋮</button>
+                    <button class="section-control-btn section-delete" onclick="deleteSection(this)" title="Delete">×</button>
+                </div>
+                <h2 class="sidebar-title" contenteditable="true">Certifications</h2>
+                <div class="sidebar-content">
+                    <div class="tag-container" id="certTags">
+                        <div class="tag-wrapper" draggable="true">
+                            <span class="tag" contenteditable="true">Godhood Certified</span>
+                            <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        </div>
+                        <div class="tag-wrapper" draggable="true">
+                            <span class="tag" contenteditable="true">Scrum Master</span>
+                            <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        </div>
+                        <div class="tag-wrapper" draggable="true">
+                            <span class="tag" contenteditable="true">First Aid</span>
+                            <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        </div>
+                        <button class="add-tag-btn" onclick="addTag(this)">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section" draggable="true">
+                <div class="section-controls">
+                    <button class="section-control-btn drag-handle" title="Move">⋮⋮</button>
+                    <button class="section-control-btn section-delete" onclick="deleteSection(this)" title="Delete">×</button>
+                </div>
+                <h2 class="sidebar-title" contenteditable="true">Interests</h2>
+                <div class="sidebar-content items-container">
+                    <div class="editable-item" draggable="true">
+                        <span class="editable-icon" onclick="openEmojiPicker(this)">⚡</span>
+                        <span class="item-text" contenteditable="true">Thunderbolt throwing</span>
+                        <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                    </div>
+                    <div class="editable-item" draggable="true">
+                        <span class="editable-icon" onclick="openEmojiPicker(this)">🐎</span>
+                        <span class="item-text" contenteditable="true">Chariot racing</span>
+                        <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                    </div>
+                    <button class="add-btn" onclick="addItem(this, 'contact')">+ Add</button>
+                </div>
+            </div>
+
+            <button class="add-section-btn" onclick="addSection('sidebar')">+ Add Section</button>
+        </aside>
+
+        <main class="main" id="mainContainer">
+            <section class="main-section" draggable="true">
+                <div class="section-controls">
+                    <button class="section-control-btn drag-handle" title="Move">⋮⋮</button>
+                    <button class="section-control-btn section-delete" onclick="deleteSection(this)" title="Delete">×</button>
+                </div>
+                <h2 class="section-title" contenteditable="true">Profile</h2>
+                <p style="font-size: 9pt; line-height: 1.6; text-align: justify;" contenteditable="true">
+                    General Engineer with +2500 years of experience. I worked for the Olympus gods building the world from scratch. I specialize in turning primordial chaos into perfectly structured, scalable systems. Proven ability to lead cross-functional teams of demigods and mortals alike. Seeking new epic challenges in a fast-paced environment.
+                </p>
+            </section>
+
+            <section class="main-section" draggable="true">
+                <div class="section-controls">
+                    <button class="section-control-btn drag-handle" title="Move">⋮⋮</button>
+                    <button class="section-control-btn section-delete" onclick="deleteSection(this)" title="Delete">×</button>
+                </div>
+                <h2 class="section-title" contenteditable="true">Experience</h2>
+                <div class="entries-container">
+                    <div class="entry">
+                        <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        <div class="entry-header">
+                            <span class="entry-title" contenteditable="true">Chief World Builder</span>
+                            <span class="entry-date" contenteditable="true">-500 BC - Present</span>
+                        </div>
+                        <p class="entry-subtitle" contenteditable="true">Olympus Inc. — Clouds Headquarters</p>
+                        <ul class="entry-list">
+                            <li contenteditable="true">Designed and deployed the continents using advanced geo-engineering frameworks.</li>
+                            <li contenteditable="true">Separated the sky from the earth with absolutely zero downtime.</li>
+                            <li contenteditable="true">Managed a team of 30+ undisciplined demigods, ensuring 100% compliance with Zeus's strict SLAs.</li>
+                        </ul>
+                    </div>
+                    <div class="entry">
+                        <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        <div class="entry-header">
+                            <span class="entry-title" contenteditable="true">Your Past Job Title Here</span>
+                            <span class="entry-date" contenteditable="true">2005 - 2010</span>
+                        </div>
+                        <p class="entry-subtitle" contenteditable="true">Company Name — Location</p>
+                        <ul class="entry-list">
+                            <li contenteditable="true">Describe your daily tasks and responsibilities here. Keep it impactful.</li>
+                            <li contenteditable="true">Mention a specific achievement, metric, or KPI (e.g., "Increased efficiency by 200%").</li>
+                            <li contenteditable="true">List the main tools, languages, or methods you used during this role.</li>
+                        </ul>
+                    </div>
+                    <button class="add-entry-btn" onclick="addEntry(this, 'experience')">+ Add Experience</button>
+                </div>
+            </section>
+
+            <section class="main-section" draggable="true">
+                <div class="section-controls">
+                    <button class="section-control-btn drag-handle" title="Move">⋮⋮</button>
+                    <button class="section-control-btn section-delete" onclick="deleteSection(this)" title="Delete">×</button>
+                </div>
+                <h2 class="section-title" contenteditable="true">Education</h2>
+                <div class="entries-container">
+                    <div class="entry">
+                        <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        <div class="entry-header">
+                            <span class="entry-title" contenteditable="true">Master of the Universe</span>
+                            <span class="entry-date" contenteditable="true">2005</span>
+                        </div>
+                        <p class="entry-subtitle" contenteditable="true">Mount Olympus University — With Highest Honors</p>
+                        <p class="entry-description" contenteditable="true">Describe what you studied and why it makes you the best fit for the job you are applying to.</p>
+                    </div>
+                    <div class="entry">
+                        <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        <div class="entry-header">
+                            <span class="entry-title" contenteditable="true">Bachelor of General Stuff</span>
+                            <span class="entry-date" contenteditable="true">2003</span>
+                        </div>
+                        <p class="entry-subtitle" contenteditable="true">Mortal Academy</p>
+                        <p class="entry-description" contenteditable="true">Details about your major, minor, or relevant coursework.</p>
+                    </div>
+                    <button class="add-entry-btn" onclick="addEntry(this, 'formation')">+ Add Education</button>
+                </div>
+            </section>
+
+            <section class="main-section" draggable="true">
+                <div class="section-controls">
+                    <button class="section-control-btn drag-handle" title="Move">⋮⋮</button>
+                    <button class="section-control-btn section-delete" onclick="deleteSection(this)" title="Delete">×</button>
+                </div>
+                <h2 class="section-title" contenteditable="true">Technical Skills</h2>
+                
+                <div class="skill-category">
+                    <p class="skill-category-title" contenteditable="true">Programming Languages</p>
+                    <div class="skill-tags">
+                        <div class="skill-tag-wrapper" draggable="true">
+                            <span class="skill-tag highlight" contenteditable="true">R</span>
+                            <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        </div>
+                        <div class="skill-tag-wrapper" draggable="true">
+                            <span class="skill-tag highlight" contenteditable="true">Python</span>
+                            <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        </div>
+                        <div class="skill-tag-wrapper" draggable="true">
+                            <span class="skill-tag" contenteditable="true">C++</span>
+                            <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        </div>
+                        <div class="skill-tag-wrapper" draggable="true">
+                            <span class="skill-tag" contenteditable="true">SQL</span>
+                            <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        </div>
+                        <div class="skill-tag-wrapper" draggable="true">
+                            <span class="skill-tag" contenteditable="true">Git</span>
+                            <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        </div>
+                        <button class="add-skill-tag-btn" onclick="addSkillTag(this)">+</button>
+                    </div>
+                </div>
+
+                <div class="skill-category">
+                    <p class="skill-category-title" contenteditable="true">Tools & Frameworks</p>
+                    <div class="skill-tags">
+                        <div class="skill-tag-wrapper" draggable="true">
+                            <span class="skill-tag" contenteditable="true">Docker</span>
+                            <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        </div>
+                        <div class="skill-tag-wrapper" draggable="true">
+                            <span class="skill-tag" contenteditable="true">React</span>
+                            <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        </div>
+                        <div class="skill-tag-wrapper" draggable="true">
+                            <span class="skill-tag" contenteditable="true">Node.js</span>
+                            <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        </div>
+                        <button class="add-skill-tag-btn" onclick="addSkillTag(this)">+</button>
+                    </div>
+                </div>
+
+                <button class="add-entry-btn" onclick="addSkillCategory(this)">+ Add Category</button>
+            </section>
+
+            <section class="main-section" draggable="true">
+                <div class="section-controls">
+                    <button class="section-control-btn drag-handle" title="Move">⋮⋮</button>
+                    <button class="section-control-btn section-delete" onclick="deleteSection(this)" title="Delete">×</button>
+                </div>
+                <h2 class="section-title" contenteditable="true">Projects / Publications</h2>
+                <div class="entries-container">
+                    <div class="publication-box">
+                        <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        <p class="publication-title" contenteditable="true">Doe J., Zeus G. (2022)</p>
+                        <p class="publication-journal" contenteditable="true">The Great Book of Everything</p>
+                        <p class="publication-status" contenteditable="true">Book — Published in the Journal of Divine Engineering</p>
+                    </div>
+                    <div class="publication-box" style="border-left-color: var(--accent);">
+                        <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        <p class="publication-title" contenteditable="true">Your Name, Collaborators (Year)</p>
+                        <p class="publication-journal" contenteditable="true">Name of the Project or Article</p>
+                        <p class="publication-status" contenteditable="true">Status — Details about your role and the outcome</p>
+                    </div>
+                    <button class="add-entry-btn" onclick="addPublication(this)">+ Add Project/Publication</button>
+                </div>
+            </section>
+
+            <button class="add-section-btn" onclick="addSection('main')">+ Add Section</button>
+        </main>
+    </div>
+
+    <script>
+        // ========== SAVE / LOAD SYSTEM (LOCALSTORAGE) ==========
+        let saveTimeout;
+
+        function triggerSave() {
+            // Empêche la sauvegarde si l'utilisateur est en train de glisser/déposer un élément
+            if (document.querySelector('.dragging')) return;
+
+            const indicator = document.getElementById('saveIndicator');
+            indicator.style.opacity = '1';
+            indicator.textContent = '💾 Saving...';
+            indicator.style.color = '#F4A261';
+
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                const cvHTML = document.getElementById('mainCvContainer').innerHTML;
+                const settings = {
+                    primary: document.documentElement.style.getPropertyValue('--primary'),
+                    accent: document.documentElement.style.getPropertyValue('--accent'),
+                    width: document.documentElement.style.getPropertyValue('--sidebar-width')
+                };
+
+                localStorage.setItem('cv_html_data', cvHTML);
+                localStorage.setItem('cv_settings_data', JSON.stringify(settings));
+
+                indicator.textContent = '✅ Saved locally';
+                indicator.style.color = '#2ecc71';
+                setTimeout(() => { indicator.style.opacity = '0'; }, 2000);
+            }, 1000);
+        }
+
+        function loadSavedData() {
+            const savedHTML = localStorage.getItem('cv_html_data');
+            const savedSettings = localStorage.getItem('cv_settings_data');
+
+            if (savedHTML) {
+                document.getElementById('mainCvContainer').innerHTML = savedHTML;
+                // Re-initialiser le drag & drop car le DOM a été recréé
+                document.querySelectorAll('.sidebar-section, .main-section').forEach(initSectionDragDrop);
+                document.querySelectorAll('.editable-item, .tag-wrapper, .skill-tag-wrapper, .skill-item').forEach(initItemDragDrop);
+            }
+
+            if (savedSettings) {
+                const s = JSON.parse(savedSettings);
+                if (s.primary) {
+                    document.getElementById('primaryColor').value = s.primary;
+                    document.documentElement.style.setProperty('--primary', s.primary);
+                    document.documentElement.style.setProperty('--primary-light', lightenColor(s.primary, 20));
+                    document.documentElement.style.setProperty('--primary-dark', darkenColor(s.primary, 20));
+                }
+                if (s.accent) {
+                    document.getElementById('accentColor').value = s.accent;
+                    document.documentElement.style.setProperty('--accent', s.accent);
+                }
+                if (s.width) {
+                    const wVal = s.width.replace('mm', '');
+                    document.getElementById('sidebarWidthInput').value = wVal;
+                    document.documentElement.style.setProperty('--sidebar-width', s.width);
+                    document.getElementById('sidebarWidthValue').textContent = s.width;
+                }
+            }
+        }
+
+        function resetData() {
+            if (confirm('⚠️ Are you sure you want to reset everything to the default template? All your saved work will be lost.')) {
+                localStorage.removeItem('cv_html_data');
+                localStorage.removeItem('cv_settings_data');
+                location.reload();
+            }
+        }
+
+        // Ecouteurs globaux pour déclencher la sauvegarde auto
+        document.addEventListener('input', triggerSave);
+        document.addEventListener('keyup', triggerSave);
+
+
+        // ========== EMOJI PICKER ==========
+        const emojis = [
+            '✉', '📧', '📩', '💌', '📬', '☎', '📞', '📱', '💬', '🗨',
+            '🌐', '🔗', '💻', '🖥', '⌂', '🏠', '🏡', '📍', '📌', '🗺',
+            '💼', '📊', '📈', '📉', '📋', '📁', '📂', '🗂', '📚', '📖',
+            '🎓', '🏛', '🔬', '🔭', '🧪', '🧬', '🔍', '🔎', '💡', '⚙',
+            '🌊', '🐟', '🐠', '🐡', '🦈', '🐋', '🐳', '🐬', '🦭', '🐙',
+            '🦑', '🦀', '🦞', '🦐', '🐚', '🪸', '🌿', '🌱', '🌴', '🌺',
+            '⛵', '🚤', '🛥', '⚓', '🚢', '🛳', '✈', '🚗', '🚙', '🚌',
+            '🔧', '🔨', '⚒', '🛠', '⚙', '🔩', '📷', '📸', '🎬', '🎥',
+            '🎞', '📹', '🖼', '🎨', '✏', '✒', '🖊', '🖋', '📝', '📐',
+            '🇫🇷', '🇦🇺', '🇳🇨', '🇵🇫', '🇵🇭', '🇹🇼', '🇹🇭', '🇬🇧', '🇺🇸', '🇪🇸',
+            '🌏', '🌍', '🌎', '🗺', '🧭',
+            '⭐', '🌟', '✨', '💫', '⚡', '🔥', '❤', '💚', '💙', '💜',
+            '🐎', '✓', '✔', '☑', '✅', '❌', '⛔', '🔴', '🟢', '🔵', '⚪',
+            '🏊', '🤿', '🏄', '🚣', '🎣', '🏃', '🚴', '⛷', '🎿', '🏔',
+        ];
+
+        let currentIconElement = null;
+
+        function openEmojiPicker(element) {
+            currentIconElement = element;
+            const picker = document.getElementById('emojiPicker');
+            const overlay = document.getElementById('overlay');
+            const grid = document.getElementById('emojiGrid');
+            
+            grid.innerHTML = '';
+            emojis.forEach(emoji => {
+                const div = document.createElement('div');
+                div.className = 'emoji-option';
+                div.textContent = emoji;
+                div.onclick = () => selectEmoji(emoji);
+                grid.appendChild(div);
+            });
+            
+            picker.classList.add('active');
+            overlay.classList.add('active');
+        }
+
+        function selectEmoji(emoji) {
+            if (currentIconElement) {
+                currentIconElement.textContent = emoji;
+                triggerSave(); // Sauvegarde après changement d'emoji
+            }
+            closeModals();
+        }
+
+        function closeModals() {
+            document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+            document.getElementById('overlay').classList.remove('active');
+        }
+
+        // ========== SETTINGS (COLORS & LAYOUT) ==========
+        function openSettingsModal() {
+            document.getElementById('settingsModal').classList.add('active');
+            document.getElementById('overlay').classList.add('active');
+        }
+
+        function updateColors() {
+            const primary = document.getElementById('primaryColor').value;
+            const accent = document.getElementById('accentColor').value;
+            
+            document.documentElement.style.setProperty('--primary', primary);
+            document.documentElement.style.setProperty('--primary-light', lightenColor(primary, 20));
+            document.documentElement.style.setProperty('--primary-dark', darkenColor(primary, 20));
+            document.documentElement.style.setProperty('--accent', accent);
+            
+            triggerSave(); // Sauvegarde après changement de couleur
+        }
+        
+        function updateLayout() {
+            const width = document.getElementById('sidebarWidthInput').value;
+            document.documentElement.style.setProperty('--sidebar-width', width + 'mm');
+            document.getElementById('sidebarWidthValue').textContent = width + 'mm';
+            
+            triggerSave(); // Sauvegarde après changement de layout
+        }
+
+        function lightenColor(color, percent) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = Math.min(255, (num >> 16) + amt);
+            const G = Math.min(255, (num >> 8 & 0x00FF) + amt);
+            const B = Math.min(255, (num & 0x0000FF) + amt);
+            return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+        }
+
+        function darkenColor(color, percent) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = Math.max(0, (num >> 16) - amt);
+            const G = Math.max(0, (num >> 8 & 0x00FF) - amt);
+            const B = Math.max(0, (num & 0x0000FF) - amt);
+            return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+        }
+
+        // ========== SKILL BAR ADJUSTMENT ==========
+        function adjustSkillBar(bar, event) {
+            const rect = bar.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const percentage = Math.round((x / rect.width) * 100);
+            bar.querySelector('.skill-level').style.width = percentage + '%';
+            triggerSave(); // Sauvegarde après ajustement de barre
+        }
+
+        // ========== PHOTO UPLOAD ==========
+        function handlePhotoUpload(event) {
+        const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                const img = document.getElementById('photoImage');
+                const placeholder = document.getElementById('photoPlaceholder');
+                const settings = document.getElementById('photoSettings');
+                
+                img.src = e.target.result;
+                img.style.display = 'block';
+                placeholder.style.display = 'none';
+                settings.style.display = 'block'; 
+                
+                document.getElementById('zoomRange').value = 1;
+                document.getElementById('posXRange').value = 0;
+                document.getElementById('posYRange').value = 0;
+                applyPhotoStyles();
+            };
+            reader.readAsDataURL(file);
+            }
+        }
+        function applyPhotoStyles() {
+            const img = document.getElementById('photoImage');
+            const zoom = document.getElementById('zoomRange').value;
+            const x = document.getElementById('posXRange').value;
+            const y = document.getElementById('posYRange').value;
+            
+            img.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(${zoom})`;
+            triggerSave(); // Sauvegarde de la position/zoom photo
+        }
+
+        // ========== DELETE FUNCTIONS ==========
+        function deleteItem(btn) {
+            const item = btn.closest('.editable-item, .tag-wrapper, .skill-tag-wrapper, .skill-item, .entry, .publication-box');
+            if (item && confirm('Delete this item?')) {
+                item.remove();
+                triggerSave();
+            }
+        }
+
+        function deleteSection(btn) {
+            const section = btn.closest('.sidebar-section, .main-section');
+            if (section && confirm('Delete this entire section?')) {
+                section.remove();
+                triggerSave();
+            }
+        }
+
+        // ========== ADD FUNCTIONS ==========
+        function addItem(btn, type) {
+            const container = btn.parentElement;
+            let newItem;
+            
+            if (type === 'contact') {
+                newItem = document.createElement('div');
+                newItem.className = 'editable-item';
+                newItem.draggable = true;
+                newItem.innerHTML = `
+                    <span class="editable-icon" onclick="openEmojiPicker(this)">📌</span>
+                    <span class="item-text" contenteditable="true">New Item</span>
+                    <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                `;
+            } else if (type === 'skill') {
+                newItem = document.createElement('div');
+                newItem.className = 'skill-item';
+                newItem.draggable = true;
+                newItem.innerHTML = `
+                    <div class="skill-name">
+                        <span contenteditable="true">Language</span>
+                        <span contenteditable="true">Level</span>
+                    </div>
+                    <div class="skill-bar" onclick="adjustSkillBar(this, event)">
+                        <div class="skill-level" style="width: 50%"></div>
+                    </div>
+                    <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                `;
+            }
+            
+            container.insertBefore(newItem, btn);
+            initItemDragDrop(newItem);
+            newItem.querySelector('[contenteditable]').focus();
+            triggerSave();
+        }
+
+        function addTag(btn) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'tag-wrapper';
+            wrapper.draggable = true;
+            wrapper.innerHTML = `
+                <span class="tag" contenteditable="true">New Tag</span>
+                <button class="delete-btn" onclick="deleteItem(this)">×</button>
+            `;
+            btn.parentElement.insertBefore(wrapper, btn);
+            initItemDragDrop(wrapper);
+            wrapper.querySelector('.tag').focus();
+            triggerSave();
+        }
+
+        function addSkillTag(btn) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'skill-tag-wrapper';
+            wrapper.draggable = true;
+            wrapper.innerHTML = `
+                <span class="skill-tag" contenteditable="true">New Skill</span>
+                <button class="delete-btn" onclick="deleteItem(this)">×</button>
+            `;
+            btn.parentElement.insertBefore(wrapper, btn);
+            initItemDragDrop(wrapper);
+            wrapper.querySelector('.skill-tag').focus();
+            triggerSave();
+        }
+
+        function addEntry(btn, type) {
+            const entry = document.createElement('div');
+            entry.className = 'entry';
+            
+            if (type === 'formation') {
+                entry.innerHTML = `
+                    <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                    <div class="entry-header">
+                        <span class="entry-title" contenteditable="true">Degree Name</span>
+                        <span class="entry-date" contenteditable="true">Year</span>
+                    </div>
+                    <p class="entry-subtitle" contenteditable="true">Institution</p>
+                    <p class="entry-description" contenteditable="true">Description</p>
+                `;
+            } else {
+                entry.innerHTML = `
+                    <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                    <div class="entry-header">
+                        <span class="entry-title" contenteditable="true">Job Title</span>
+                        <span class="entry-date" contenteditable="true">Period</span>
+                    </div>
+                    <p class="entry-subtitle" contenteditable="true">Company / Organization</p>
+                    <ul class="entry-list">
+                        <li contenteditable="true">Task description...</li>
+                    </ul>
+                `;
+            }
+            
+            btn.parentElement.insertBefore(entry, btn);
+            entry.querySelector('.entry-title').focus();
+            triggerSave();
+        }
+
+        function addPublication(btn) {
+            const pub = document.createElement('div');
+            pub.className = 'publication-box';
+            pub.innerHTML = `
+                <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                <p class="publication-title" contenteditable="true">Authors (Year)</p>
+                <p class="publication-journal" contenteditable="true">Project / Paper Title</p>
+                <p class="publication-status" contenteditable="true">Status / Role / Details</p>
+            `;
+            btn.parentElement.insertBefore(pub, btn);
+            pub.querySelector('.publication-title').focus();
+            triggerSave();
+        }
+
+        function addSkillCategory(btn) {
+            const cat = document.createElement('div');
+            cat.className = 'skill-category';
+            cat.innerHTML = `
+                <p class="skill-category-title" contenteditable="true">New Category</p>
+                <div class="skill-tags">
+                    <div class="skill-tag-wrapper" draggable="true">
+                        <span class="skill-tag" contenteditable="true">Skill</span>
+                        <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                    </div>
+                    <button class="add-skill-tag-btn" onclick="addSkillTag(this)">+</button>
+                </div>
+            `;
+            btn.parentElement.insertBefore(cat, btn);
+            initAllItemsDragDrop(cat);
+            cat.querySelector('.skill-category-title').focus();
+            triggerSave();
+        }
+
+        function addSection(location) {
+            const section = document.createElement(location === 'sidebar' ? 'div' : 'section');
+            section.className = location === 'sidebar' ? 'sidebar-section' : 'main-section';
+            section.draggable = true;
+            
+            if (location === 'sidebar') {
+                section.innerHTML = `
+                    <div class="section-controls">
+                        <button class="section-control-btn drag-handle" title="Move">⋮⋮</button>
+                        <button class="section-control-btn section-delete" onclick="deleteSection(this)" title="Delete">×</button>
+                    </div>
+                    <h2 class="sidebar-title" contenteditable="true">New Section</h2>
+                    <div class="sidebar-content items-container">
+                        <div class="editable-item" draggable="true">
+                            <span class="editable-icon" onclick="openEmojiPicker(this)">📌</span>
+                            <span class="item-text" contenteditable="true">Item</span>
+                            <button class="delete-btn" onclick="deleteItem(this)">×</button>
+                        </div>
+                        <button class="add-btn" onclick="addItem(this, 'contact')">+ Add</button>
+                    </div>
+                `;
+                const container = document.getElementById('sidebarContainer');
+                const addBtn = container.querySelector('.add-section-btn');
+                container.insertBefore(section, addBtn);
+            } else {
+                section.innerHTML = `
+                    <div class="section-controls">
+                        <button class="section-control-btn drag-handle" title="Move">⋮⋮</button>
+                        <button class="section-control-btn section-delete" onclick="deleteSection(this)" title="Delete">×</button>
+                    </div>
+                    <h2 class="section-title" contenteditable="true">New Section</h2>
+                    <p contenteditable="true">Section content...</p>
+                `;
+                const container = document.getElementById('mainContainer');
+                const addBtn = container.querySelector('.add-section-btn');
+                container.insertBefore(section, addBtn);
+            }
+            
+            initSectionDragDrop(section);
+            initAllItemsDragDrop(section);
+            section.querySelector('[contenteditable]').focus();
+            triggerSave();
+        }
+
+        // ========== DRAG & DROP ==========
+        let draggedElement = null;
+        let dragType = null;
+
+        function initSectionDragDrop(section) {
+            section.addEventListener('dragstart', handleSectionDragStart);
+            section.addEventListener('dragend', handleDragEnd);
+            section.addEventListener('dragover', handleSectionDragOver);
+            section.addEventListener('drop', handleSectionDrop);
+            section.addEventListener('dragleave', handleDragLeave);
+        }
+
+        function initItemDragDrop(item) {
+            item.addEventListener('dragstart', handleItemDragStart);
+            item.addEventListener('dragend', handleDragEnd);
+            item.addEventListener('dragover', handleItemDragOver);
+            item.addEventListener('drop', handleItemDrop);
+            item.addEventListener('dragleave', handleDragLeave);
+        }
+
+        function initAllItemsDragDrop(container) {
+            container.querySelectorAll('.editable-item, .tag-wrapper, .skill-tag-wrapper, .skill-item').forEach(item => {
+                initItemDragDrop(item);
+            });
+        }
+
+        function handleSectionDragStart(e) {
+            if (e.target.closest('.editable-item, .tag-wrapper, .skill-tag-wrapper, .skill-item')) {
+                return;
+            }
+            draggedElement = this;
+            dragType = 'section';
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleItemDragStart(e) {
+            e.stopPropagation();
+            draggedElement = this;
+            dragType = 'item';
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            draggedElement = null;
+            dragType = null;
+            triggerSave(); // Sauvegarde à la fin du déplacement
+        }
+
+        function handleSectionDragOver(e) {
+            if (dragType !== 'section') return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            if (this !== draggedElement && this.parentNode === draggedElement.parentNode) {
+                this.classList.add('drag-over');
+            }
+        }
+
+        function handleItemDragOver(e) {
+            if (dragType !== 'item') return;
+            e.preventDefault();
+            e.stopPropagation();
+            e.dataTransfer.dropEffect = 'move';
+            
+            if (this !== draggedElement && this.parentNode === draggedElement.parentNode) {
+                this.classList.add('drag-over');
+            }
+        }
+
+        function handleSectionDrop(e) {
+            if (dragType !== 'section') return;
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            
+            if (this !== draggedElement && this.parentNode === draggedElement.parentNode) {
+                const allSections = [...this.parentNode.querySelectorAll('.sidebar-section, .main-section')];
+                const draggedIndex = allSections.indexOf(draggedElement);
+                const droppedIndex = allSections.indexOf(this);
+                
+                if (draggedIndex < droppedIndex) {
+                    this.parentNode.insertBefore(draggedElement, this.nextSibling);
+                } else {
+                    this.parentNode.insertBefore(draggedElement, this);
+                }
+            }
+        }
+
+        function handleItemDrop(e) {
+            if (dragType !== 'item') return;
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.remove('drag-over');
+            
+            if (this !== draggedElement && this.parentNode === draggedElement.parentNode) {
+                const allItems = [...this.parentNode.querySelectorAll('.editable-item, .tag-wrapper, .skill-tag-wrapper, .skill-item')];
+                const draggedIndex = allItems.indexOf(draggedElement);
+                const droppedIndex = allItems.indexOf(this);
+                
+                if (draggedIndex < droppedIndex) {
+                    this.parentNode.insertBefore(draggedElement, this.nextSibling);
+                } else {
+                    this.parentNode.insertBefore(draggedElement, this);
+                }
+            }
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSavedData(); // Charge les données locales d'abord
+            
+            // Init section drag & drop (si on n'a pas chargé de données)
+            if(!localStorage.getItem('cv_html_data')) {
+                document.querySelectorAll('.sidebar-section, .main-section').forEach(section => {
+                    initSectionDragDrop(section);
+                });
+                
+                // Init item drag & drop
+                document.querySelectorAll('.editable-item, .tag-wrapper, .skill-tag-wrapper, .skill-item').forEach(item => {
+                    initItemDragDrop(item);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
