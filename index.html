@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 
     <style>
+        /* ========== GLOBAL RESETS ========== */
         * {
             margin: 0;
             padding: 0;
@@ -44,7 +45,7 @@
             padding-top: 60px;
         }
 
-        /* ========== TOOLBAR ========== */
+        /* ========== TOOLBAR (UI ONLY) ========== */
         .editor-toolbar {
             position: fixed;
             top: 0;
@@ -148,7 +149,7 @@
             .toolbar-info { display: block; }
         }
 
-        /* ========== CV CONTAINER ========== */
+        /* ========== CV CONTAINER (A4 PAPER) ========== */
         .cv-container {
             width: 210mm;
             min-height: 297mm;
@@ -161,7 +162,7 @@
             transition: grid-template-columns 0.1s ease-out;
         }
 
-        /* ========== SIDEBAR ========== */
+        /* ========== SIDEBAR (LEFT) ========== */
         .sidebar {
             background: var(--bg-sidebar);
             color: var(--text-light);
@@ -252,7 +253,7 @@
             opacity: 0.9;
         }
 
-        /* Sections sidebar */
+        /* Sidebar Sections */
         .sidebar-section {
             padding: 18px 20px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -296,7 +297,7 @@
             line-height: 1.6;
         }
 
-        /* ========== EDITABLE ITEMS ========== */
+        /* ========== DRAGGABLE ITEMS ========== */
         .editable-item {
             display: flex;
             align-items: flex-start;
@@ -369,6 +370,7 @@
             z-index: 10;
         }
 
+        /* Show delete button on hover */
         .editable-item:hover .delete-btn,
         .tag-wrapper:hover .delete-btn,
         .skill-tag-wrapper:hover .delete-btn,
@@ -508,7 +510,7 @@
             transition: width 0.3s;
         }
 
-        /* ========== MAIN CONTENT ========== */
+        /* ========== MAIN CONTENT (RIGHT) ========== */
         .main {
             padding: 25px 30px;
             background: white;
@@ -836,7 +838,7 @@
             outline-offset: 2px;
         }
 
-        /* Sidebar editable */
+        /* Sidebar editable specific styles */
         .sidebar [contenteditable="true"]:hover {
             background: rgba(255,255,255,0.1);
         }
@@ -845,7 +847,7 @@
             background: rgba(255,255,255,0.15);
         }
 
-        /* ========== MODALS ========== */
+        /* ========== MODALS (POP-UPS) ========== */
         .overlay {
             display: none;
             position: fixed;
@@ -994,16 +996,16 @@
             background: rgba(46, 125, 111, 0.05);
         }
 
-        /* ========== PRINT ========== */
+        /* ========== PRINT (MOBILE & DESKTOP OPTIMIZED) ========== */
         @media print {
-            /* 1. remove interface controls */
+            /* 1. Hide User Interface */
             .editor-toolbar, .modal, .overlay,
             .delete-btn, .add-btn, .add-tag-btn, .add-entry-btn, .add-section-btn,
             .add-skill-tag-btn, .section-controls, .photo-edit-panel, .ad-container {
                 display: none !important;
             }
 
-            /* 2. force bgd graphics */
+            /* 2. Force Background Graphics (Essential for iOS/Android) */
             body {
                 -webkit-print-color-adjust: exact !important;   /* Chrome/Safari/iOS */
                 print-color-adjust: exact !important;           /* Firefox/Standard */
@@ -1012,10 +1014,10 @@
                 padding: 0;
             }
 
-            /* with layout and A4 size */
+            /* 3. Force A4 Layout */
             @page {
                 size: A4;
-                margin: 0; /* no margin */
+                margin: 0;
             }
 
             .cv-container {
@@ -1023,24 +1025,33 @@
                 min-height: 297mm !important;
                 margin: 0 !important;
                 box-shadow: none !important;
-                display: grid !important; 
+                display: grid !important;
                 grid-template-columns: var(--sidebar-width) 1fr !important;
                 overflow: visible !important;
-                /* no scaling*/
                 transform: scale(1) !important; 
             }
 
-            /*  clean page cuts */
+            /* 4. Handle Page Breaks & Clean Backgrounds */
             .sidebar-section, .main-section, .editable-item,
             .skill-item, .publication-box, .entry, .skill-category {
-                background: transparent !important; /* Nettoyage */
+                background: transparent !important;
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
             }
 
-            /* fix for links */
+            /* 5. Clean Editable Areas */
             [contenteditable="true"] {
                 background: transparent !important;
+            }
+
+            /* 6. FIX: Force Highlighted Skills Visibility */
+            /* Overrides the 'transparent' background rule for highlight items */
+            .skill-tag.highlight {
+                background-color: var(--primary) !important;
+                color: white !important;
+                border-color: var(--primary) !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
             
             a {
@@ -1068,7 +1079,7 @@
             text-align: center;
         }
 
-        /* very important remove ads during print pdf */
+        /* Ensure ads are hidden during print */
         @media print {
             .ad-container { display: none !important; }
         }
@@ -1490,7 +1501,7 @@
 
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(() => {
-                // On récupère le HTML brut
+                // On récupère le HTML brut (SANS DOMPurify car on est en local et cela casse les boutons)
                 const rawHTML = document.getElementById('mainCvContainer').innerHTML;
                 
                 const settings = {
@@ -1513,6 +1524,7 @@
             const savedSettings = localStorage.getItem('cv_settings_data');
 
             if (savedHTML) {
+                // Chargement direct (SANS DOMPurify pour garder les événements JS sur les boutons)
                 document.getElementById('mainCvContainer').innerHTML = savedHTML;
                 document.querySelectorAll('.sidebar-section, .main-section').forEach(initSectionDragDrop);
                 document.querySelectorAll('.editable-item, .tag-wrapper, .skill-tag-wrapper, .skill-item').forEach(initItemDragDrop);
